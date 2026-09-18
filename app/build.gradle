@@ -1,0 +1,32 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ru.brooklynpizza.magnitogorsk'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'ru.brooklynpizza.magnitogorsk'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0-test1'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ''
+            versionNameSuffix ''
+        }
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
