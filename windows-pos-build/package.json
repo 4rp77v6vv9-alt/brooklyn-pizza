@@ -1,0 +1,33 @@
+{
+  "name": "brooklyn-pizza-pos-desktop",
+  "version": "20.31.47",
+  "private": true,
+  "description": "Brooklyn Pizza POS for Windows",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "electron": "38.1.2",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "ru.brooklynpizza.pos",
+    "productName": "Brooklyn Pizza POS",
+    "asar": true,
+    "directories": {"output": "dist"},
+    "files": ["electron/**/*","renderer/**/*","package.json"],
+    "win": {
+      "target": [{"target":"nsis","arch":["x64"]}],
+      "artifactName": "Brooklyn-Pizza-POS-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Brooklyn Pizza POS"
+    }
+  }
+}
