@@ -1,0 +1,37 @@
+name: Build Brooklyn Pizza Windows POS 20.31.49
+
+on:
+  push:
+    branches:
+      - build/windows-pos-20.31.49
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows-pos-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows-pos-build/package.json
+      - name: Install dependencies
+        run: npm install
+      - name: Build NSIS installer
+        run: npm run dist:win
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brooklyn-Pizza-POS-Setup-20.31.49
+          path: windows-pos-build/dist/*.exe
+          if-no-files-found: error
+          retention-days: 7
