@@ -4,7 +4,7 @@ const config=require('./config.cjs')
 const hardware=require('./hardware.cjs')
 
 const TOOLBAR_HEIGHT=58
-let win,settingsWin,posView
+let win,settingsWin,egaisWin,posView
 
 function normalizeServer(raw){
   const value=String(raw||'').trim().replace(/\/$/,'')
@@ -129,7 +129,47 @@ function openSettings(){
   void settingsWin.loadFile(path.join(__dirname,'../renderer/settings.html'))
   return true
 }
+function openEgais(){
+  if(egaisWin&&!egaisWin.isDestroyed()){egaisWin.focus();return true}
+  egaisWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,width:1240,height:820,minWidth:980,minHeight:650,title:'Brooklyn Pizza POS — ЕГАИС'}))
+  egaisWin.once('ready-to-show',()=>egaisWin.show())
+  egaisWin.on('closed',()=>{egaisWin=null})
+  void egaisWin.loadFile(path.join(__dirname,'../renderer/egais.html'))
+  return true
+}
 function isLocal(event){return String(event?.senderFrame?.url||'').startsWith('file://')}
+
+async function listPrinters(){
+  try{
+    const wc=win?.webContents
+    if(!wc)return []
+    const items=await wc.getPrintersAsync()
+    return items.map(p=>({name:p.name,displayName:p.displayName||p.name,description:p.description||'',status:p.status||0,isDefault:!!p.isDefault}))
+  }catch{return []}
+}
+function escapeHtml(value){
+  return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))
+}
+async function printToDevice(payload={}){
+  const c=config.read()
+  const devices=Array.isArray(c.hardware?.printer?.devices)?c.hardware.printer.devices:[]
+  let deviceName=String(payload.deviceName||'').trim()
+  if(!deviceName&&payload.printerId){
+    const found=devices.find(x=>String(x.id)===String(payload.printerId))
+    if(found)deviceName=found.deviceName
+  }
+  if(!deviceName)return {ok:false,error:'Не выбран Windows-принтер'}
+  const html=payload.html||`<!doctype html><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:10px;white-space:pre-wrap}h2{margin:0 0 10px}</style><h2>Brooklyn Pizza POS</h2><div>${escapeHtml(payload.text||'Тестовая печать')}</div>`
+  const pwin=new BrowserWindow({show:false,width:420,height:600,webPreferences:{sandbox:true}})
+  try{
+    await pwin.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html))
+    const result=await new Promise(resolve=>{
+      pwin.webContents.print({silent:true,printBackground:true,deviceName},(success,failureReason)=>resolve(success?{ok:true}:{ok:false,error:failureReason||'Не удалось напечатать'}))
+    })
+    return result
+  }catch(e){return {ok:false,error:e.message}}
+  finally{if(!pwin.isDestroyed())pwin.destroy()}
+}
 
 app.whenReady().then(()=>{
   session.defaultSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false))
@@ -151,9 +191,14 @@ ipcMain.handle('config:set',async(event,value)=>{
   }catch(e){return {ok:false,error:e.message}}
 })
 ipcMain.handle('settings:open',()=>openSettings())
+ipcMain.handle('egais:open',()=>openEgais())
 ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();return true})
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
 ipcMain.handle('pos:navigate',(_event,index)=>navigatePos(index))
 ipcMain.handle('pos:navState',()=>posNavState())
+ipcMain.handle('printers:list',()=>listPrinters())
+ipcMain.handle('printers:openSystem',()=>{void shell.openExternal('ms-settings:printers');return true})
+ipcMain.handle('printers:test',(_event,payload)=>printToDevice({...payload,text:payload?.text||'Brooklyn Pizza POS\nТестовая печать\nПринтер подключен корректно.'}))
+ipcMain.handle('printer:print',(_event,payload)=>printToDevice(payload))
 ipcMain.handle('hardware:status',()=>hardware.status())
 ipcMain.handle('hardware:command',(_event,{channel,payload})=>hardware.command(String(channel||''),payload))
