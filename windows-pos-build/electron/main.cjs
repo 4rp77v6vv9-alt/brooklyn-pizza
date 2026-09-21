@@ -1,4 +1,5 @@
 const path=require('path')
+const fs=require('fs')
 const {app,BrowserWindow,BrowserView,ipcMain,shell,session}=require('electron')
 const config=require('./config.cjs')
 const hardware=require('./hardware.cjs')
@@ -140,6 +141,46 @@ function openEgais(){
   return true
 }
 function isLocal(event){return String(event?.senderFrame?.url||'').startsWith('file://')}
+function isTrusted(event){
+  const url=String(event?.senderFrame?.url||'')
+  if(url.startsWith('file://'))return true
+  const server=normalizeServer(config.read().serverUrl)
+  return Boolean(server&&url.startsWith(server+'/'))
+}
+function cachePath(){return path.join(app.getPath('userData'),'pos-cache.json')}
+function validCacheKey(key){return /^brooklyn-pos-[a-z0-9._-]{1,100}$/i.test(String(key||''))}
+function readPosCache(){
+  try{const value=JSON.parse(fs.readFileSync(cachePath(),'utf8'));return value&&typeof value==='object'&&!Array.isArray(value)?value:{}}
+  catch{return {}}
+}
+function writePosCache(value){
+  const raw=JSON.stringify(value)
+  if(Buffer.byteLength(raw,'utf8')>40*1024*1024)throw new Error('Локальная база POS превысила допустимый размер')
+  const file=cachePath(),tmp=file+'.tmp'
+  fs.mkdirSync(path.dirname(file),{recursive:true})
+  fs.writeFileSync(tmp,raw,'utf8')
+  fs.renameSync(tmp,file)
+}
+function cacheGet(key){
+  if(!validCacheKey(key))return null
+  const store=readPosCache()
+  return Object.prototype.hasOwnProperty.call(store,key)?store[key]:null
+}
+function cacheSet(key,value){
+  if(!validCacheKey(key))return {ok:false,error:'Некорректный ключ локальной базы'}
+  try{
+    const store=readPosCache()
+    JSON.stringify(value)
+    store[key]=value
+    writePosCache(store)
+    return {ok:true}
+  }catch(e){return {ok:false,error:e.message}}
+}
+function cacheDelete(key){
+  if(!validCacheKey(key))return {ok:false,error:'Некорректный ключ локальной базы'}
+  try{const store=readPosCache();delete store[key];writePosCache(store);return {ok:true}}
+  catch(e){return {ok:false,error:e.message}}
+}
 
 async function listPrinters(){
   try{
@@ -155,28 +196,33 @@ function escapeHtml(value){
 async function printToDevice(payload={}){
   const c=config.read()
   const devices=Array.isArray(c.hardware?.printer?.devices)?c.hardware.printer.devices:[]
-  let deviceName=String(payload.deviceName||'').trim()
-  if(!deviceName&&payload.printerId){
+  let names=[]
+  const explicit=String(payload.deviceName||'').trim()
+  if(explicit)names=[explicit]
+  else if(payload.printerId){
     const found=devices.find(x=>String(x.id)===String(payload.printerId))
-    if(found)deviceName=found.deviceName
+    if(found?.deviceName)names=[String(found.deviceName)]
+  }else if(payload.role){
+    names=[...new Set(devices.filter(x=>String(x.role||'')===String(payload.role)&&String(x.deviceName||'').trim()).map(x=>String(x.deviceName).trim()))]
   }
-  if(!deviceName&&payload.role){
-    const found=devices.find(x=>String(x.role||'')===String(payload.role)&&String(x.deviceName||'').trim())
-    if(found)deviceName=found.deviceName
-  }
-  if(!deviceName){
+  if(!names.length){
     const role=String(payload.role||'')
-    return {ok:false,error:role==='kitchen'?'В настройках не назначен принтер с ролью «Кухня»':role==='receipt'?'В настройках не назначен принтер с ролью «Чек»':'Не выбран Windows-принтер'}
+    return {ok:false,configured:false,error:role==='kitchen'?'В настройках не назначен принтер с ролью «Кухня»':role==='receipt'?'В настройках не назначен принтер с ролью «Чек»':'Не выбран Windows-принтер'}
   }
   const html=payload.html||`<!doctype html><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:10px;white-space:pre-wrap}h2{margin:0 0 10px}</style><h2>Brooklyn Pizza POS</h2><div>${escapeHtml(payload.text||'Тестовая печать')}</div>`
   const pwin=new BrowserWindow({show:false,width:420,height:600,webPreferences:{sandbox:true}})
   try{
     await pwin.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html))
-    const result=await new Promise(resolve=>{
-      pwin.webContents.print({silent:true,printBackground:true,deviceName},(success,failureReason)=>resolve(success?{ok:true}:{ok:false,error:failureReason||'Не удалось напечатать'}))
-    })
-    return result
-  }catch(e){return {ok:false,error:e.message}}
+    const results=[]
+    for(const deviceName of names){
+      const result=await new Promise(resolve=>{
+        pwin.webContents.print({silent:true,printBackground:true,deviceName},(success,failureReason)=>resolve(success?{ok:true,deviceName}:{ok:false,deviceName,error:failureReason||'Не удалось напечатать'}))
+      })
+      results.push(result)
+    }
+    const failed=results.filter(x=>!x.ok)
+    return failed.length?{ok:false,configured:true,printed:results.length-failed.length,failed:failed.map(x=>x.deviceName),results,error:`Не удалось напечатать: ${failed.map(x=>x.deviceName).join(', ')}`}:{ok:true,configured:true,count:results.length,results}
+  }catch(e){return {ok:false,configured:true,error:e.message}}
   finally{if(!pwin.isDestroyed())pwin.destroy()}
 }
 
@@ -206,6 +252,9 @@ ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
 ipcMain.handle('pos:navigate',(_event,index)=>navigatePos(index))
 ipcMain.handle('pos:navState',()=>posNavState())
+ipcMain.handle('cache:get',(event,key)=>isTrusted(event)?cacheGet(key):null)
+ipcMain.handle('cache:set',(event,{key,value}={})=>isTrusted(event)?cacheSet(key,value):{ok:false,error:'Недоверенный источник'})
+ipcMain.handle('cache:delete',(event,key)=>isTrusted(event)?cacheDelete(key):{ok:false,error:'Недоверенный источник'})
 ipcMain.handle('startup:get',(event)=>isLocal(event)?Boolean(app.getLoginItemSettings().openAtLogin):false)
 ipcMain.handle('startup:set',(event,enabled)=>{
   if(!isLocal(event))return {ok:false,enabled:false,error:'Автозапуск изменяется только в локальных настройках POS'}
