@@ -205,8 +205,9 @@ ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
 ipcMain.handle('pos:navigate',(_event,index)=>navigatePos(index))
 ipcMain.handle('pos:navState',()=>posNavState())
-ipcMain.handle('startup:get',()=>Boolean(app.getLoginItemSettings().openAtLogin))
-ipcMain.handle('startup:set',(_event,enabled)=>{
+ipcMain.handle('startup:get',(event)=>isLocal(event)?Boolean(app.getLoginItemSettings().openAtLogin):false)
+ipcMain.handle('startup:set',(event,enabled)=>{
+  if(!isLocal(event))return {ok:false,enabled:false,error:'Автозапуск изменяется только в локальных настройках POS'}
   try{
     const value=Boolean(enabled)
     app.setLoginItemSettings({openAtLogin:value,path:process.execPath})
