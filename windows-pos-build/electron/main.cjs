@@ -4,7 +4,7 @@ const config=require('./config.cjs')
 const hardware=require('./hardware.cjs')
 
 const TOOLBAR_HEIGHT=58
-let win,settingsWin,setupWin,posView
+let win,settingsWin,posView
 
 function normalizeServer(raw){
   const value=String(raw||'').trim().replace(/\/$/,'')
@@ -28,6 +28,30 @@ function positionPosView(){
   const [width,height]=win.getContentSize()
   posView.setBounds({x:0,y:TOOLBAR_HEIGHT,width:Math.max(0,width),height:Math.max(0,height-TOOLBAR_HEIGHT)})
 }
+function installIdleRefresh(view){
+  const script=`(()=>{
+    if(window.__brooklynIdleRefreshInstalled)return;
+    window.__brooklynIdleRefreshInstalled=true;
+    let last=Date.now();
+    const touch=()=>{last=Date.now()};
+    ['pointerdown','pointermove','keydown','touchstart','wheel','input','change'].forEach(evt=>window.addEventListener(evt,touch,{passive:true,capture:true}));
+    setInterval(()=>{
+      try{
+        const idle=Date.now()-last>=30000;
+        const clear=document.querySelector('.pos-clear');
+        const orderEmpty=!!clear&&clear.disabled===true;
+        const active=document.activeElement;
+        const editing=active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
+        const dialog=document.querySelector('[role="dialog"]');
+        if(idle&&orderEmpty&&!editing&&!dialog){
+          last=Date.now();
+          location.reload();
+        }
+      }catch{}
+    },5000);
+  })();`
+  view.webContents.executeJavaScript(script,true).catch(()=>{})
+}
 function wirePosNavigation(view,server){
   view.webContents.setWindowOpenHandler(({url})=>{
     if(url.startsWith(server))return {action:'allow'}
@@ -39,16 +63,13 @@ function wirePosNavigation(view,server){
     event.preventDefault()
     void shell.openExternal(url)
   })
-  view.webContents.on('before-input-event',(event,input)=>{
-    if(input.type==='keyDown'&&input.key==='F11'){event.preventDefault();toggleFullscreen()}
-    if(input.type==='keyDown'&&input.control&&input.key.toLowerCase()==='r'){event.preventDefault();void reloadPos()}
-  })
+  view.webContents.on('did-finish-load',()=>installIdleRefresh(view))
 }
 async function loadPos(){
   const c=config.read(),server=normalizeServer(c.serverUrl)
   if(!server){
     if(posView&&win){win.removeBrowserView(posView);posView.webContents.close();posView=null}
-    openServerSettings()
+    openSettings()
     return false
   }
   if(posView&&win){
@@ -69,16 +90,6 @@ async function loadPos(){
   await posView.webContents.loadURL(server+'/pos')
   return true
 }
-async function reloadPos(){
-  if(posView&&!posView.webContents.isDestroyed()){posView.webContents.reload();return true}
-  return loadPos()
-}
-function toggleFullscreen(){
-  if(!win||win.isDestroyed())return false
-  win.setFullScreen(!win.isFullScreen())
-  setTimeout(positionPosView,30)
-  return win.isFullScreen()
-}
 function createWindow(){
   win=new BrowserWindow({
     width:1440,height:900,minWidth:1050,minHeight:680,show:false,
@@ -95,28 +106,15 @@ function createWindow(){
   win.on('resize',positionPosView)
   win.on('maximize',positionPosView)
   win.on('unmaximize',positionPosView)
-  win.on('enter-full-screen',positionPosView)
-  win.on('leave-full-screen',positionPosView)
   win.on('closed',()=>{win=null;posView=null})
-  win.webContents.on('before-input-event',(event,input)=>{
-    if(input.type==='keyDown'&&input.key==='F11'){event.preventDefault();toggleFullscreen()}
-  })
   void loadPos()
 }
 function openSettings(){
   if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return true}
-  settingsWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,title:'Brooklyn Pizza POS — оборудование'}))
+  settingsWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,title:'Brooklyn Pizza POS — настройки'}))
   settingsWin.once('ready-to-show',()=>settingsWin.show())
   settingsWin.on('closed',()=>{settingsWin=null})
   void settingsWin.loadFile(path.join(__dirname,'../renderer/settings.html'))
-  return true
-}
-function openServerSettings(){
-  if(setupWin&&!setupWin.isDestroyed()){setupWin.focus();return true}
-  setupWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,width:620,height:560,minWidth:520,minHeight:460,title:'Brooklyn Pizza POS — подключение'}))
-  setupWin.once('ready-to-show',()=>setupWin.show())
-  setupWin.on('closed',()=>{setupWin=null})
-  void setupWin.loadFile(path.join(__dirname,'../renderer/setup.html'))
   return true
 }
 function isLocal(event){return String(event?.senderFrame?.url||'').startsWith('file://')}
@@ -137,16 +135,11 @@ ipcMain.handle('config:set',async(event,value)=>{
     const previous=config.read()
     config.write({...value,serverUrl:server,fullscreen:false})
     if(previous.serverUrl!==server||!posView)await loadPos()
-    if(setupWin&&!setupWin.isDestroyed())setupWin.close()
     return {ok:true}
   }catch(e){return {ok:false,error:e.message}}
 })
 ipcMain.handle('settings:open',()=>openSettings())
-ipcMain.handle('server:settings',()=>openServerSettings())
-ipcMain.handle('window:toggleFullscreen',()=>toggleFullscreen())
 ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();return true})
-ipcMain.handle('window:toggleMaximize',()=>{if(!win||win.isDestroyed())return false;if(win.isMaximized())win.unmaximize();else win.maximize();setTimeout(positionPosView,30);return win.isMaximized()})
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
-ipcMain.handle('pos:reload',()=>reloadPos())
 ipcMain.handle('hardware:status',()=>hardware.status())
 ipcMain.handle('hardware:command',(_event,{channel,payload})=>hardware.command(String(channel||''),payload))
