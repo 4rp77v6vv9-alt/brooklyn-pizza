@@ -4,7 +4,7 @@ const {app}=require('electron')
 
 const defaults={
   serverUrl:'',
-  fullscreen:false,
+  fullscreen:true,
   hardware:{
     fiscal:{enabled:false,provider:'atol',model:'',connection:'driver',address:'',adapterUrl:''},
     acquiring:{enabled:false,provider:'sberbank',mode:'local_adapter',adapterUrl:''},
