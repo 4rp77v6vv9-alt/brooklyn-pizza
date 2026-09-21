@@ -20,7 +20,7 @@
     "files": ["electron/**/*","renderer/**/*","package.json"],
     "win": {
       "target": [{"target":"nsis","arch":["x64"]}],
-      "artifactName": "Brooklyn-Pizza-POS-Setup-${version}-r2-${arch}.${ext}"
+      "artifactName": "Brooklyn-Pizza-POS-Setup-${version}-r3-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
