@@ -28,27 +28,16 @@ function positionPosView(){
   const [width,height]=win.getContentSize()
   posView.setBounds({x:0,y:TOOLBAR_HEIGHT,width:Math.max(0,width),height:Math.max(0,height-TOOLBAR_HEIGHT)})
 }
-function installIdleRefresh(view){
+function installDesktopLayout(view){
   const script=`(()=>{
-    if(window.__brooklynIdleRefreshInstalled)return;
-    window.__brooklynIdleRefreshInstalled=true;
-    let last=Date.now();
-    const touch=()=>{last=Date.now()};
-    ['pointerdown','pointermove','keydown','touchstart','wheel','input','change'].forEach(evt=>window.addEventListener(evt,touch,{passive:true,capture:true}));
-    setInterval(()=>{
-      try{
-        const idle=Date.now()-last>=30000;
-        const clear=document.querySelector('.pos-clear');
-        const orderEmpty=!!clear&&clear.disabled===true;
-        const active=document.activeElement;
-        const editing=active&&['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
-        const dialog=document.querySelector('[role="dialog"]');
-        if(idle&&orderEmpty&&!editing&&!dialog){
-          last=Date.now();
-          location.reload();
-        }
-      }catch{}
-    },5000);
+    let style=document.getElementById('brooklyn-windows-pos-layout');
+    if(!style){
+      style=document.createElement('style');
+      style.id='brooklyn-windows-pos-layout';
+      style.textContent='.pos-toolbar{display:none!important}.pos{padding-top:0!important}';
+      document.head.appendChild(style);
+    }
+    return true;
   })();`
   view.webContents.executeJavaScript(script,true).catch(()=>{})
 }
@@ -63,7 +52,7 @@ function wirePosNavigation(view,server){
     event.preventDefault()
     void shell.openExternal(url)
   })
-  view.webContents.on('did-finish-load',()=>installIdleRefresh(view))
+  view.webContents.on('did-finish-load',()=>installDesktopLayout(view))
 }
 async function loadPos(){
   const c=config.read(),server=normalizeServer(c.serverUrl)
@@ -89,6 +78,29 @@ async function loadPos(){
   wirePosNavigation(posView,server)
   await posView.webContents.loadURL(server+'/pos')
   return true
+}
+async function navigatePos(index){
+  if(!posView||posView.webContents.isDestroyed())return false
+  return posView.webContents.executeJavaScript(`(()=>{
+    const buttons=[...document.querySelectorAll('.pos-nav button')];
+    const button=buttons[${Number(index)||0}];
+    if(!button)return false;
+    button.click();
+    return true;
+  })();`,true).catch(()=>false)
+}
+async function posNavState(){
+  if(!posView||posView.webContents.isDestroyed())return {ready:false,active:0,orderCount:'',savedLabel:'Отложенные · 0'}
+  return posView.webContents.executeJavaScript(`(()=>{
+    const buttons=[...document.querySelectorAll('.pos-nav button')];
+    if(buttons.length<5)return {ready:false,active:0,orderCount:'',savedLabel:'Отложенные · 0'};
+    return {
+      ready:true,
+      active:Math.max(0,buttons.findIndex(b=>b.classList.contains('selected'))),
+      orderCount:document.querySelector('.pos-order-count')?.textContent?.trim()||'',
+      savedLabel:buttons[2]?.textContent?.trim()||'Отложенные · 0'
+    };
+  })();`,true).catch(()=>({ready:false,active:0,orderCount:'',savedLabel:'Отложенные · 0'}))
 }
 function createWindow(){
   win=new BrowserWindow({
@@ -141,5 +153,7 @@ ipcMain.handle('config:set',async(event,value)=>{
 ipcMain.handle('settings:open',()=>openSettings())
 ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();return true})
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
+ipcMain.handle('pos:navigate',(_event,index)=>navigatePos(index))
+ipcMain.handle('pos:navState',()=>posNavState())
 ipcMain.handle('hardware:status',()=>hardware.status())
 ipcMain.handle('hardware:command',(_event,{channel,payload})=>hardware.command(String(channel||''),payload))
