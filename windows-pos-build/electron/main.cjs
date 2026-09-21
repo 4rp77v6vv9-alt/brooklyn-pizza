@@ -181,6 +181,7 @@ async function printToDevice(payload={}){
 }
 
 app.whenReady().then(()=>{
+  app.setAppUserModelId('ru.brooklynpizza.pos')
   session.defaultSession.setPermissionRequestHandler((_wc,_permission,callback)=>callback(false))
   createWindow()
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow()})
