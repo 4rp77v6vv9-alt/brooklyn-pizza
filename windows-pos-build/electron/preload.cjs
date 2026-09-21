@@ -6,10 +6,15 @@ contextBridge.exposeInMainWorld('brooklynDesktop',{
   getConfig:()=>ipcRenderer.invoke('config:get'),
   saveConfig:value=>ipcRenderer.invoke('config:set',value),
   openHardwareSettings:()=>ipcRenderer.invoke('settings:open'),
+  openEgais:()=>ipcRenderer.invoke('egais:open'),
   minimize:()=>ipcRenderer.invoke('window:minimize'),
   close:()=>ipcRenderer.invoke('window:close'),
   navigatePos:index=>ipcRenderer.invoke('pos:navigate',index),
   getPosNavState:()=>ipcRenderer.invoke('pos:navState'),
+  listPrinters:()=>ipcRenderer.invoke('printers:list'),
+  openWindowsPrinters:()=>ipcRenderer.invoke('printers:openSystem'),
+  testPrinter:payload=>ipcRenderer.invoke('printers:test',payload),
+  print:payload=>ipcRenderer.invoke('printer:print',payload),
   hardwareStatus:()=>ipcRenderer.invoke('hardware:status'),
   hardwareCommand:(channel,payload)=>ipcRenderer.invoke('hardware:command',{channel,payload})
 })
