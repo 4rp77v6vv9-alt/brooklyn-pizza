@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('brooklynDesktop',{
   openHardwareSettings:()=>ipcRenderer.invoke('settings:open'),
   minimize:()=>ipcRenderer.invoke('window:minimize'),
   close:()=>ipcRenderer.invoke('window:close'),
+  navigatePos:index=>ipcRenderer.invoke('pos:navigate',index),
+  getPosNavState:()=>ipcRenderer.invoke('pos:navState'),
   hardwareStatus:()=>ipcRenderer.invoke('hardware:status'),
   hardwareCommand:(channel,payload)=>ipcRenderer.invoke('hardware:command',{channel,payload})
 })
