@@ -1,18 +1,31 @@
 <!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brooklyn Pizza POS</title><style>
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#111;color:#fff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
 .bar{height:58px;display:flex;align-items:center;background:linear-gradient(180deg,#202225,#17191c);border-bottom:1px solid #32353a;box-shadow:0 4px 18px #0005;-webkit-app-region:drag;user-select:none}
-.brand{display:flex;align-items:center;gap:12px;padding:0 18px}
-.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(145deg,#ff9b35,#ff6800);display:grid;place-items:center;color:#161616;font-weight:1000;box-shadow:inset 0 1px 0 #fff6,0 5px 14px #ff730035}
-.name{font-weight:900;font-size:15px;line-height:1.05}.sub{font-size:10px;color:#9da2aa;margin-top:3px;letter-spacing:.08em}
-.spacer{flex:1}
+.brand{display:flex;align-items:center;gap:8px;padding:0 10px 0 12px;min-width:188px}
+.logo{width:31px;height:31px;border-radius:10px;background:linear-gradient(145deg,#ff9b35,#ff6800);display:grid;place-items:center;color:#161616;font-weight:1000;font-size:12px;box-shadow:inset 0 1px 0 #fff6,0 4px 12px #ff730035}
+.name{font-weight:900;font-size:13px;line-height:1.02;white-space:nowrap}.sub{font-size:8px;color:#9da2aa;margin-top:3px;letter-spacing:.07em;white-space:nowrap}
+.nav{height:100%;display:flex;align-items:center;gap:5px;-webkit-app-region:no-drag;min-width:0}
+.nav button{position:relative;height:42px;border:1px solid #3a3e42;border-radius:10px;background:linear-gradient(#2b2f31,#232628);color:#f1f3f4;padding:0 13px;font:700 12px system-ui;cursor:pointer;white-space:nowrap;box-shadow:inset 0 1px 0 #ffffff0e,0 2px 6px #0003;transition:.14s ease}
+.nav button:hover{background:linear-gradient(#353a3c,#292d2f);border-color:#4e5457}.nav button.active{background:linear-gradient(#303536,#292d2e);box-shadow:inset 0 -3px 0 #42bfd0,inset 0 1px 0 #ffffff12,0 3px 8px #0004;border-color:#33383a}
+.badge{display:none;position:absolute;right:4px;top:3px;min-width:18px;height:18px;padding:0 5px;border-radius:10px;background:#e64a3b;color:#fff;font:800 10px/18px system-ui}
+.badge.show{display:block}
+.spacer{flex:1;min-width:8px}
 .windows{height:100%;display:flex;align-items:center;-webkit-app-region:no-drag;padding-right:6px;gap:2px}
-.win{width:46px;height:42px;border:0;border-radius:10px;background:transparent;color:#c8cbd0;font-size:18px;cursor:pointer;transition:.15s ease}
+.win{width:44px;height:42px;border:0;border-radius:10px;background:transparent;color:#c8cbd0;font-size:18px;cursor:pointer;transition:.15s ease}
 .win:hover{background:#ffffff0d}.win:active{transform:translateY(1px)}
 .win.settings{font-size:19px}.win.confirm{background:#1f8f4d;color:white;box-shadow:inset 0 1px 0 #ffffff2b,0 0 0 1px #3cd87855}
 .connect{position:absolute;top:58px;left:0;right:0;bottom:0;display:grid;place-items:center;pointer-events:none;color:#60656c;font-size:14px}
+@media(max-width:1180px){.brand{min-width:160px}.name{font-size:12px}.nav button{padding:0 9px;font-size:11px}}
 </style></head><body>
 <div class="bar">
   <div class="brand"><div class="logo">BP</div><div><div class="name">Brooklyn Pizza POS</div><div class="sub">WINDOWS · 20.31.48</div></div></div>
+  <nav class="nav" aria-label="Разделы POS">
+    <button data-pos="0" class="active">Продажи</button>
+    <button data-pos="1">Заказы<span id="orderBadge" class="badge"></span></button>
+    <button data-pos="2" id="savedTab">Отложенные · 0</button>
+    <button data-pos="3">История заказов</button>
+    <button data-pos="4">Смена и отчёты</button>
+  </nav>
   <div class="spacer"></div>
   <div class="windows">
     <button class="win settings" id="settings" title="Настройки">⚙</button>
@@ -23,7 +36,24 @@
 <div class="connect">Рабочая область POS загружается…</div>
 <script>
 const api=window.brooklynDesktop;
+const nav=[...document.querySelectorAll('[data-pos]')];
+nav.forEach(button=>button.addEventListener('click',()=>api.navigatePos(Number(button.dataset.pos))));
 document.getElementById('settings').onclick=()=>api.openHardwareSettings();
+
+async function syncNav(){
+  try{
+    const state=await api.getPosNavState();
+    if(!state?.ready)return;
+    nav.forEach((button,index)=>button.classList.toggle('active',index===state.active));
+    const badge=document.getElementById('orderBadge');
+    const count=String(state.orderCount||'').trim();
+    badge.textContent=count;
+    badge.classList.toggle('show',Boolean(count));
+    document.getElementById('savedTab').textContent=state.savedLabel||'Отложенные · 0';
+  }catch{}
+}
+setInterval(syncNav,600);
+syncNav();
 
 function armSecondClick(button,action,label){
   let armed=false,timer=null;
