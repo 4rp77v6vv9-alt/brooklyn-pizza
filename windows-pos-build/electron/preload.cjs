@@ -2,7 +2,7 @@ const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('brooklynDesktop',{
   isDesktop:true,
   platform:process.platform,
-  version:'20.31.50',
+  version:'20.31.51',
   getConfig:()=>ipcRenderer.invoke('config:get'),
   saveConfig:value=>ipcRenderer.invoke('config:set',value),
   openHardwareSettings:()=>ipcRenderer.invoke('settings:open'),
@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld('brooklynDesktop',{
   openWindowsPrinters:()=>ipcRenderer.invoke('printers:openSystem'),
   testPrinter:payload=>ipcRenderer.invoke('printers:test',payload),
   print:payload=>ipcRenderer.invoke('printer:print',payload),
+  cacheGet:key=>ipcRenderer.invoke('cache:get',key),
+  cacheSet:(key,value)=>ipcRenderer.invoke('cache:set',{key,value}),
+  cacheDelete:key=>ipcRenderer.invoke('cache:delete',key),
   getAutoStart:()=>ipcRenderer.invoke('startup:get'),
   setAutoStart:enabled=>ipcRenderer.invoke('startup:set',Boolean(enabled)),
   hardwareStatus:()=>ipcRenderer.invoke('hardware:status'),
