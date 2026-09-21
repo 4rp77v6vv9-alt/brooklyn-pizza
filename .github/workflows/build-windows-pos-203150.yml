@@ -1,0 +1,79 @@
+name: Build Brooklyn Pizza Windows POS 20.31.50
+
+on:
+  push:
+    branches:
+      - build/windows-pos-20.31.50
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows-pos-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows-pos-build/package.json
+
+      - name: Generate BP application icon
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          Add-Type -AssemblyName System.Drawing
+          $bmp = New-Object System.Drawing.Bitmap 256,256
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+          $g.Clear([System.Drawing.Color]::FromArgb(24,26,28))
+          $orange = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(247,122,31))
+          $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+          $r = 50
+          $path.AddArc(10,10,$r,$r,180,90)
+          $path.AddArc(196,10,$r,$r,270,90)
+          $path.AddArc(196,196,$r,$r,0,90)
+          $path.AddArc(10,196,$r,$r,90,90)
+          $path.CloseFigure()
+          $g.FillPath($orange,$path)
+          $font = New-Object System.Drawing.Font('Arial',88,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
+          $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(20,22,23))
+          $fmt = New-Object System.Drawing.StringFormat
+          $fmt.Alignment = [System.Drawing.StringAlignment]::Center
+          $fmt.LineAlignment = [System.Drawing.StringAlignment]::Center
+          $g.DrawString('BP',$font,$brush,(New-Object System.Drawing.RectangleF(0,0,256,256)),$fmt)
+          $icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+          $stream = [System.IO.File]::Create((Join-Path (Get-Location) 'build/icon.ico'))
+          $icon.Save($stream)
+          $stream.Close()
+          $icon.Dispose(); $font.Dispose(); $brush.Dispose(); $orange.Dispose(); $path.Dispose(); $g.Dispose(); $bmp.Dispose()
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Syntax check
+        shell: powershell
+        run: |
+          node --check electron/main.cjs
+          node --check electron/preload.cjs
+          node --check electron/config.cjs
+          node --check electron/hardware.cjs
+
+      - name: Build NSIS installer
+        run: npm run dist:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brooklyn-Pizza-POS-Setup-20.31.50
+          path: windows-pos-build/dist/*.exe
+          if-no-files-found: error
+          retention-days: 7
