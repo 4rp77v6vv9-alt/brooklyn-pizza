@@ -4,6 +4,7 @@ const config=require('./config.cjs')
 const hardware=require('./hardware.cjs')
 
 const TOOLBAR_HEIGHT=58
+const APP_ICON=path.join(__dirname,'../build/icon.ico')
 let win,settingsWin,egaisWin,posView
 
 function normalizeServer(raw){
@@ -18,7 +19,7 @@ function normalizeServer(raw){
 function localWindowOptions(extra={}){
   return {
     width:920,height:780,minWidth:680,minHeight:520,show:false,
-    autoHideMenuBar:true,backgroundColor:'#111111',
+    autoHideMenuBar:true,backgroundColor:'#111111',icon:APP_ICON,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,partition:'persist:brooklyn-pos'},
     ...extra
   }
@@ -105,15 +106,16 @@ async function posNavState(){
 function createWindow(){
   win=new BrowserWindow({
     width:1440,height:900,minWidth:1050,minHeight:680,show:false,
-    frame:false,backgroundColor:'#111111',
+    frame:false,backgroundColor:'#111111',icon:APP_ICON,
+    fullscreen:true,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,partition:'persist:brooklyn-pos'},
     title:'Brooklyn Pizza POS'
   })
   win.loadFile(path.join(__dirname,'../renderer/shell.html'))
   win.once('ready-to-show',()=>{
+    win.setFullScreen(true)
     win.show()
-    win.maximize()
-    setTimeout(positionPosView,50)
+    setTimeout(positionPosView,80)
   })
   win.on('resize',positionPosView)
   win.on('maximize',positionPosView)
@@ -158,7 +160,14 @@ async function printToDevice(payload={}){
     const found=devices.find(x=>String(x.id)===String(payload.printerId))
     if(found)deviceName=found.deviceName
   }
-  if(!deviceName)return {ok:false,error:'Не выбран Windows-принтер'}
+  if(!deviceName&&payload.role){
+    const found=devices.find(x=>String(x.role||'')===String(payload.role)&&String(x.deviceName||'').trim())
+    if(found)deviceName=found.deviceName
+  }
+  if(!deviceName){
+    const role=String(payload.role||'')
+    return {ok:false,error:role==='kitchen'?'В настройках не назначен принтер с ролью «Кухня»':role==='receipt'?'В настройках не назначен принтер с ролью «Чек»':'Не выбран Windows-принтер'}
+  }
   const html=payload.html||`<!doctype html><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:10px;white-space:pre-wrap}h2{margin:0 0 10px}</style><h2>Brooklyn Pizza POS</h2><div>${escapeHtml(payload.text||'Тестовая печать')}</div>`
   const pwin=new BrowserWindow({show:false,width:420,height:600,webPreferences:{sandbox:true}})
   try{
@@ -185,7 +194,7 @@ ipcMain.handle('config:set',async(event,value)=>{
     const server=normalizeServer(value?.serverUrl)
     if(!server)return {ok:false,error:'Укажите полный адрес сайта, например https://ваш-домен.ru'}
     const previous=config.read()
-    config.write({...value,serverUrl:server,fullscreen:false})
+    config.write({...value,serverUrl:server,fullscreen:true})
     if(previous.serverUrl!==server||!posView)await loadPos()
     return {ok:true}
   }catch(e){return {ok:false,error:e.message}}
@@ -196,6 +205,14 @@ ipcMain.handle('window:minimize',()=>{if(win&&!win.isDestroyed())win.minimize();
 ipcMain.handle('window:close',()=>{if(win&&!win.isDestroyed())win.close();return true})
 ipcMain.handle('pos:navigate',(_event,index)=>navigatePos(index))
 ipcMain.handle('pos:navState',()=>posNavState())
+ipcMain.handle('startup:get',()=>Boolean(app.getLoginItemSettings().openAtLogin))
+ipcMain.handle('startup:set',(_event,enabled)=>{
+  try{
+    const value=Boolean(enabled)
+    app.setLoginItemSettings({openAtLogin:value,path:process.execPath})
+    return {ok:true,enabled:Boolean(app.getLoginItemSettings().openAtLogin)}
+  }catch(e){return {ok:false,enabled:false,error:e.message}}
+})
 ipcMain.handle('printers:list',()=>listPrinters())
 ipcMain.handle('printers:openSystem',()=>{void shell.openExternal('ms-settings:printers');return true})
 ipcMain.handle('printers:test',(_event,payload)=>printToDevice({...payload,text:payload?.text||'Brooklyn Pizza POS\nТестовая печать\nПринтер подключен корректно.'}))
