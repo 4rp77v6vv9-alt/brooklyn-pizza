@@ -1,6 +1,6 @@
 {
   "name": "brooklyn-pizza-pos-desktop",
-  "version": "20.31.47",
+  "version": "20.31.48",
   "private": true,
   "description": "Brooklyn Pizza POS for Windows",
   "main": "electron/main.cjs",
