@@ -2,7 +2,7 @@ const {contextBridge,ipcRenderer}=require('electron')
 contextBridge.exposeInMainWorld('brooklynDesktop',{
   isDesktop:true,
   platform:process.platform,
-  version:'20.31.51',
+  version:'1.0.0',
   getConfig:()=>ipcRenderer.invoke('config:get'),
   saveConfig:value=>ipcRenderer.invoke('config:set',value),
   openHardwareSettings:()=>ipcRenderer.invoke('settings:open'),
