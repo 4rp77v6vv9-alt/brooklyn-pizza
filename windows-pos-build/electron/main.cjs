@@ -4,8 +4,9 @@ const {app,BrowserWindow,BrowserView,ipcMain,shell,session}=require('electron')
 const config=require('./config.cjs')
 const hardware=require('./hardware.cjs')
 
-const TOOLBAR_HEIGHT=58
+const TOOLBAR_HEIGHT=76
 const APP_ICON=path.join(__dirname,'../build/icon.ico')
+const RITA_THEME=path.join(__dirname,'../renderer/rita-pos-theme.css')
 let win,settingsWin,egaisWin,posView
 
 function normalizeServer(raw){
@@ -32,16 +33,21 @@ function positionPosView(){
 }
 function installDesktopLayout(view){
   const script=`(()=>{
-    let style=document.getElementById('brooklyn-windows-pos-layout');
+    let style=document.getElementById('rita-windows-pos-layout');
     if(!style){
       style=document.createElement('style');
-      style.id='brooklyn-windows-pos-layout';
+      style.id='rita-windows-pos-layout';
       style.textContent='.pos-toolbar{display:none!important}.pos{padding-top:0!important}';
       document.head.appendChild(style);
     }
+    document.documentElement.dataset.ritaPos='1';
     return true;
   })();`
   view.webContents.executeJavaScript(script,true).catch(()=>{})
+  try{
+    const css=fs.readFileSync(RITA_THEME,'utf8')
+    view.webContents.insertCSS(css,{cssOrigin:'author'}).catch(()=>{})
+  }catch{}
 }
 function wirePosNavigation(view,server){
   view.webContents.setWindowOpenHandler(({url})=>{
@@ -110,7 +116,7 @@ function createWindow(){
     frame:false,backgroundColor:'#111111',icon:APP_ICON,
     fullscreen:true,
     webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true,partition:'persist:brooklyn-pos'},
-    title:'Brooklyn Pizza POS'
+    title:'Rita POS'
   })
   win.loadFile(path.join(__dirname,'../renderer/shell.html'))
   win.once('ready-to-show',()=>{
@@ -126,7 +132,7 @@ function createWindow(){
 }
 function openSettings(){
   if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return true}
-  settingsWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,title:'Brooklyn Pizza POS — настройки'}))
+  settingsWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,title:'Rita POS — настройки'}))
   settingsWin.once('ready-to-show',()=>settingsWin.show())
   settingsWin.on('closed',()=>{settingsWin=null})
   void settingsWin.loadFile(path.join(__dirname,'../renderer/settings.html'))
@@ -134,7 +140,7 @@ function openSettings(){
 }
 function openEgais(){
   if(egaisWin&&!egaisWin.isDestroyed()){egaisWin.focus();return true}
-  egaisWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,width:1240,height:820,minWidth:980,minHeight:650,title:'Brooklyn Pizza POS — ЕГАИС'}))
+  egaisWin=new BrowserWindow(localWindowOptions({parent:win,modal:true,width:1240,height:820,minWidth:980,minHeight:650,title:'Rita POS — ЕГАИС'}))
   egaisWin.once('ready-to-show',()=>egaisWin.show())
   egaisWin.on('closed',()=>{egaisWin=null})
   void egaisWin.loadFile(path.join(__dirname,'../renderer/egais.html'))
@@ -209,7 +215,7 @@ async function printToDevice(payload={}){
     const role=String(payload.role||'')
     return {ok:false,configured:false,error:role==='kitchen'?'В настройках не назначен принтер с ролью «Кухня»':role==='receipt'?'В настройках не назначен принтер с ролью «Чек»':'Не выбран Windows-принтер'}
   }
-  const html=payload.html||`<!doctype html><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:10px;white-space:pre-wrap}h2{margin:0 0 10px}</style><h2>Brooklyn Pizza POS</h2><div>${escapeHtml(payload.text||'Тестовая печать')}</div>`
+  const html=payload.html||`<!doctype html><meta charset="utf-8"><style>body{font:14px Arial,sans-serif;padding:10px;white-space:pre-wrap}h2{margin:0 0 10px}</style><h2>Rita POS</h2><div>${escapeHtml(payload.text||'Тестовая печать')}</div>`
   const pwin=new BrowserWindow({show:false,width:420,height:600,webPreferences:{sandbox:true}})
   try{
     await pwin.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html))
@@ -266,7 +272,7 @@ ipcMain.handle('startup:set',(event,enabled)=>{
 })
 ipcMain.handle('printers:list',()=>listPrinters())
 ipcMain.handle('printers:openSystem',()=>{void shell.openExternal('ms-settings:printers');return true})
-ipcMain.handle('printers:test',(_event,payload)=>printToDevice({...payload,text:payload?.text||'Brooklyn Pizza POS\nТестовая печать\nПринтер подключен корректно.'}))
+ipcMain.handle('printers:test',(_event,payload)=>printToDevice({...payload,text:payload?.text||'Rita POS\nТестовая печать\nПринтер подключен корректно.'}))
 ipcMain.handle('printer:print',(_event,payload)=>printToDevice(payload))
 ipcMain.handle('hardware:status',()=>hardware.status())
 ipcMain.handle('hardware:command',(_event,{channel,payload})=>hardware.command(String(channel||''),payload))
