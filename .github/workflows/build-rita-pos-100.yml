@@ -1,0 +1,96 @@
+name: Build Rita POS 1.0.0
+
+on:
+  push:
+    branches:
+      - build/rita-pos-1.0.0
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows-pos-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: windows-pos-build/package.json
+
+      - name: Generate Rita POS icon
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          Add-Type -AssemblyName System.Drawing
+          $bmp = New-Object System.Drawing.Bitmap 256,256
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+          $g.Clear([System.Drawing.Color]::FromArgb(248,250,252))
+
+          $rect = New-Object System.Drawing.Rectangle 16,16,224,224
+          $brush1 = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255,90,31))
+          $brush2 = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(239,61,52))
+          $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+          $r = 58
+          $path.AddArc(16,16,$r,$r,180,90)
+          $path.AddArc(182,16,$r,$r,270,90)
+          $path.AddArc(182,182,$r,$r,0,90)
+          $path.AddArc(16,182,$r,$r,90,90)
+          $path.CloseFigure()
+          $g.FillPath($brush1,$path)
+          $overlay = New-Object System.Drawing.RectangleF 88,16,152,224
+          $g.FillRectangle($brush2,$overlay)
+          $g.SetClip($path)
+          $g.FillRectangle($brush2,$overlay)
+          $g.ResetClip()
+
+          $font = New-Object System.Drawing.Font('Segoe UI',72,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
+          $white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
+          $fmt = New-Object System.Drawing.StringFormat
+          $fmt.Alignment = [System.Drawing.StringAlignment]::Center
+          $fmt.LineAlignment = [System.Drawing.StringAlignment]::Center
+          $g.DrawString('RP',$font,$white,(New-Object System.Drawing.RectangleF(0,0,256,250)),$fmt)
+
+          $icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+          $stream = [System.IO.File]::Create((Join-Path (Get-Location) 'build/icon.ico'))
+          $icon.Save($stream)
+          $stream.Close()
+          $icon.Dispose(); $font.Dispose(); $white.Dispose(); $brush1.Dispose(); $brush2.Dispose(); $path.Dispose(); $g.Dispose(); $bmp.Dispose()
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Syntax check
+        shell: powershell
+        run: |
+          node --check electron/main.cjs
+          node --check electron/preload.cjs
+          node --check electron/config.cjs
+          node --check electron/hardware.cjs
+
+      - name: Verify Rita theme is packaged
+        shell: powershell
+        run: |
+          if (!(Test-Path "renderer/rita-pos-theme.css")) { throw "Rita POS theme missing" }
+          Select-String -Path "renderer/shell.html" -Pattern "Rita POS" -Quiet | Out-Null
+          Select-String -Path "renderer/shell.html" -Pattern "ресторанные информационные технологии и автоматизация" -Quiet | Out-Null
+
+      - name: Build NSIS installer
+        run: npm run dist:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rita-POS-Setup-1.0.0
+          path: windows-pos-build/dist/*.exe
+          if-no-files-found: error
+          retention-days: 14
