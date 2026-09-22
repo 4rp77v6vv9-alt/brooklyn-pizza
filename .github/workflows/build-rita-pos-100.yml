@@ -48,7 +48,6 @@ jobs:
           $path.CloseFigure()
           $g.FillPath($brush1,$path)
           $overlay = New-Object System.Drawing.RectangleF 88,16,152,224
-          $g.FillRectangle($brush2,$overlay)
           $g.SetClip($path)
           $g.FillRectangle($brush2,$overlay)
           $g.ResetClip()
