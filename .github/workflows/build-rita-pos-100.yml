@@ -81,7 +81,6 @@ jobs:
         run: |
           if (!(Test-Path "renderer/rita-pos-theme.css")) { throw "Rita POS theme missing" }
           Select-String -Path "renderer/shell.html" -Pattern "Rita POS" -Quiet | Out-Null
-          Select-String -Path "renderer/shell.html" -Pattern "ресторанные информационные технологии и автоматизация" -Quiet | Out-Null
 
       - name: Build NSIS installer
         run: npm run dist:win
