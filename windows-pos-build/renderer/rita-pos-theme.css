@@ -1,0 +1,339 @@
+/* Rita POS 1.0 — visual skin only. Business logic stays in the server POS. */
+:root{
+  --rita-orange:#ff5a1f;
+  --rita-orange-2:#ff7a2f;
+  --rita-red:#ef3d34;
+  --rita-ink:#18212b;
+  --rita-muted:#6f7a86;
+  --rita-bg:#f4f7fa;
+  --rita-panel:#ffffff;
+  --rita-line:#e5eaf0;
+  --rita-soft:#f7f9fb;
+  --rita-green:#18a05e;
+  --rita-shadow:0 10px 30px rgba(35,47,62,.08),0 2px 8px rgba(35,47,62,.05);
+}
+html:has(.pos),body:has(.pos){background:var(--rita-bg)!important}
+.admin-main:has(.pos){background:var(--rita-bg)!important}
+.pos{
+  --pos-border:var(--rita-line)!important;
+  --pos-mint:var(--rita-bg)!important;
+  --pos-top:#fff!important;
+  --pos-cyan:var(--rita-orange)!important;
+  --pos-green:var(--rita-orange)!important;
+  --pos-green-dark:#e84c17!important;
+  --pos-tile:#f7f9fb!important;
+  --pos-tile-border:#e7ebf0!important;
+  background:var(--rita-bg)!important;
+  color:var(--rita-ink)!important;
+  font-family:Inter,Segoe UI,system-ui,-apple-system,sans-serif!important;
+}
+.pos-workspace{background:var(--rita-bg)!important;padding:14px 16px 16px!important}
+.pos-workspace-sale{overflow:hidden!important}
+.pos-layout{
+  grid-template-columns:minmax(0,1fr) 390px!important;
+  grid-template-areas:"catalog ticket"!important;
+  gap:16px!important;
+  align-items:stretch!important;
+}
+.pos-catalog{
+  grid-area:catalog!important;
+  border:0!important;
+  background:transparent!important;
+  padding:0!important;
+  box-shadow:none!important;
+}
+.pos-ticket{
+  grid-area:ticket!important;
+  border:1px solid var(--rita-line)!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  padding:0!important;
+  overflow:hidden!important;
+  box-shadow:var(--rita-shadow)!important;
+}
+.pos-search-row{
+  height:52px!important;
+  margin:0 0 12px 0!important;
+  gap:9px!important;
+}
+.pos-search-row .pos-search{
+  height:52px!important;
+  min-height:52px!important;
+  border-radius:14px!important;
+  border:1px solid #e0e6ec!important;
+  background:#fff!important;
+  color:var(--rita-ink)!important;
+  font-size:16px!important;
+  padding:0 17px!important;
+  box-shadow:0 4px 16px rgba(32,44,58,.05)!important;
+}
+.pos-search-row .pos-search:focus{
+  border-color:#ff9b75!important;
+  box-shadow:0 0 0 4px rgba(255,90,31,.11),0 5px 18px rgba(32,44,58,.06)!important;
+  outline:0!important;
+}
+.pos-search-row button{
+  height:52px!important;
+  min-width:52px!important;
+  border-radius:14px!important;
+  border:1px solid #e0e6ec!important;
+  background:#fff!important;
+  color:#677482!important;
+  box-shadow:0 4px 16px rgba(32,44,58,.05)!important;
+}
+.pos-catalog-body{
+  grid-template-columns:154px minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  gap:12px!important;
+  margin-top:0!important;
+  min-height:0!important;
+}
+.pos-categories{
+  background:#fff!important;
+  border:1px solid var(--rita-line)!important;
+  border-radius:18px!important;
+  padding:8px!important;
+  gap:6px!important;
+  box-shadow:0 8px 24px rgba(35,47,62,.06)!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.pos-categories button{
+  min-height:52px!important;
+  border:1px solid transparent!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  color:#34404c!important;
+  text-align:left!important;
+  font-size:14px!important;
+  font-weight:750!important;
+  padding:10px 12px!important;
+  box-shadow:none!important;
+}
+.pos-categories button:hover{background:#f7f9fb!important;border-color:#eef1f4!important}
+.pos-categories button.selected{
+  background:linear-gradient(135deg,var(--rita-orange),#ff6f2e)!important;
+  border-color:var(--rita-orange)!important;
+  color:#fff!important;
+  box-shadow:0 7px 18px rgba(255,90,31,.22)!important;
+}
+.pos-product-column{min-height:0!important;overflow:hidden!important}
+.pos-products{
+  grid-template-columns:repeat(auto-fill,minmax(172px,1fr))!important;
+  gap:11px!important;
+  padding:1px 3px 10px 1px!important;
+  align-content:start!important;
+}
+.pos-product{
+  border:1px solid var(--rita-line)!important;
+  border-radius:17px!important;
+  background:#fff!important;
+  padding:10px!important;
+  gap:9px!important;
+  min-height:0!important;
+  box-shadow:0 7px 24px rgba(35,47,62,.06)!important;
+  transition:transform .14s ease,box-shadow .16s ease,border-color .16s ease!important;
+}
+.pos-product:hover{
+  transform:translateY(-1px)!important;
+  border-color:#d9e0e7!important;
+  box-shadow:0 12px 28px rgba(35,47,62,.10)!important;
+}
+.pos .pos-product-photo{
+  min-height:0!important;
+  padding:0!important;
+  gap:8px!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  align-items:stretch!important;
+  text-align:left!important;
+}
+.pos-product img{
+  width:100%!important;
+  height:116px!important;
+  object-fit:contain!important;
+  border-radius:12px!important;
+  background:#fafbfc!important;
+}
+.pos-product h3{
+  min-height:38px!important;
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:800!important;
+  text-align:left!important;
+  color:#202a34!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+}
+.pos-product-prices{gap:6px!important;border:0!important;background:transparent!important}
+.pos .pos-price-button{
+  min-height:42px!important;
+  border:1px solid #e1e6ec!important;
+  border-radius:11px!important;
+  background:#f8fafb!important;
+  color:#2e3945!important;
+  padding:8px 10px!important;
+  font-size:12px!important;
+  box-shadow:none!important;
+}
+.pos .pos-price-button:hover{background:#fff4ef!important;border-color:#ffc4ae!important}
+.pos .pos-price-button b{font-size:14px!important;color:#202a34!important}
+.pos .pos-price-button.pos-confirm-add{
+  background:linear-gradient(135deg,#25b96d,#169954)!important;
+  color:#fff!important;border-color:#169954!important;
+  box-shadow:0 6px 16px rgba(22,153,84,.20)!important;
+}
+.pos .pos-price-button.pos-confirm-add b{color:#fff!important}
+
+/* Current order */
+.pos-ticket-tabs{
+  padding:10px 10px 0!important;
+  gap:6px!important;
+  background:#fff!important;
+  border:0!important;
+  overflow:visible!important;
+}
+.pos-ticket-tabs button{
+  height:40px!important;
+  border:1px solid #e8edf2!important;
+  border-radius:11px!important;
+  background:#f7f9fb!important;
+  color:#65717d!important;
+  font-size:13px!important;
+  font-weight:750!important;
+  box-shadow:none!important;
+}
+.pos-ticket-tabs button.selected{
+  background:linear-gradient(135deg,var(--rita-orange),#ff7130)!important;
+  color:#fff!important;
+  border-color:var(--rita-orange)!important;
+  box-shadow:0 5px 14px rgba(255,90,31,.18)!important;
+}
+.pos-ticket-title{
+  min-height:56px!important;
+  padding:12px 14px 10px!important;
+  background:#fff!important;
+  border-bottom:1px solid #eef1f4!important;
+}
+.pos-ticket-title h2{font-size:18px!important;font-weight:850!important;color:#1f2933!important}
+.pos-ticket-title button{border-radius:10px!important;background:#f8fafb!important;border-color:#e5eaf0!important}
+.pos-ticket-content{padding:0 14px 9px!important}
+.pos-line{padding:12px 2px!important;border-bottom:1px solid #eef1f4!important}
+.pos-line b{font-size:14px!important;color:#202a34!important}
+.pos-line small{color:#7c8792!important}
+.pos-quantity button{
+  min-width:32px!important;min-height:30px!important;
+  border-radius:9px!important;background:#f7f9fb!important;border-color:#e5eaf0!important;
+}
+.pos-order-fields input,.pos-order-fields select,.pos-order-fields textarea,
+.pos-modal input,.pos-modal select,.pos-modal textarea,.pos-search{
+  border-radius:11px!important;border-color:#dde4ea!important;background:#fff!important;color:#202a34!important;
+}
+.pos-ticket>.pos-total{
+  padding:12px 14px!important;
+  border-top:1px solid #e9edf1!important;
+  background:#fbfcfd!important;
+}
+.pos-ticket>.pos-total span{font-size:13px;color:#77828d}
+.pos-ticket>.pos-total strong{font-size:28px!important;color:#17212b!important;font-weight:900!important}
+.pos-ticket-actions{
+  gap:8px!important;
+  padding:10px 12px 13px!important;
+  background:#fff!important;
+}
+.pos-ticket-actions button,.pos-ticket>button{
+  min-height:48px!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+  font-weight:800!important;
+}
+.pos button.pos-primary{
+  background:linear-gradient(135deg,var(--rita-orange),#f43f27)!important;
+  border-color:transparent!important;
+  color:#fff!important;
+  box-shadow:0 8px 18px rgba(244,63,39,.20)!important;
+}
+.pos button.pos-primary:hover{background:linear-gradient(135deg,#ff692f,#ef3428)!important}
+.pos-hold-pay{
+  background:#fff4ef!important;
+  color:#c84a1b!important;
+  border-color:#ffd0bf!important;
+  box-shadow:none!important;
+}
+
+/* Keyboard: keep server geometry/mechanics, only make it match Rita POS. */
+.pos-keyboard-dock .pos-virtual-keyboard{
+  background:rgba(255,255,255,.98)!important;
+  border-color:#e1e6eb!important;
+  border-radius:16px!important;
+  box-shadow:0 12px 28px rgba(35,47,62,.12),inset 0 1px 0 #fff!important;
+}
+.pos-keyboard-dock .pos-virtual-keyboard button{
+  background:linear-gradient(180deg,#fff,#f7f9fb)!important;
+  color:#26313b!important;
+  border-color:#dfe5ea!important;
+  box-shadow:0 1px 2px rgba(35,47,62,.07)!important;
+}
+.pos-keyboard-dock .pos-virtual-keyboard button:hover{background:#fff4ef!important;border-color:#ffcbb8!important}
+.pos-kbd-controls .lang{background:#eef6ff!important;border-color:#d4e5f6!important;color:#2d648e!important}
+.pos-kbd-numpad .done{
+  background:linear-gradient(135deg,var(--rita-orange),#f43f27)!important;
+  border-color:transparent!important;color:#fff!important;
+}
+
+/* Status & auxiliary screens */
+.pos-sync-state{
+  margin:0 16px 10px!important;
+  border:1px solid #e0e6ec!important;
+  background:#fff!important;
+  color:#53606c!important;
+  border-radius:12px!important;
+  box-shadow:0 4px 14px rgba(35,47,62,.05)!important;
+}
+.pos-panel,.pos-web-card,.pos-orders-embedded .vendor-orders-page,.pos-history-embedded .vendor-history-page{
+  border-radius:18px!important;
+  border-color:var(--rita-line)!important;
+  background:#fff!important;
+  box-shadow:var(--rita-shadow)!important;
+}
+.pos-order-list article{border-bottom-color:#edf1f4!important}
+.pos-modal{
+  border-radius:20px!important;
+  box-shadow:0 24px 80px rgba(13,21,30,.24)!important;
+}
+.pos-overlay{background:rgba(19,28,38,.42)!important;backdrop-filter:blur(3px)}
+.pos-toast{
+  border-radius:14px!important;
+  background:#fff!important;
+  border-color:#e5eaf0!important;
+  color:#34404b!important;
+  box-shadow:0 12px 36px rgba(35,47,62,.14)!important;
+}
+.pos-club-card,.pos-pay-club{
+  background:linear-gradient(135deg,#222b34,#333f49)!important;
+  border-color:#e0b45d!important;
+  border-radius:14px!important;
+}
+.pos-due-order{color:#d8302a!important}
+.pos-terminal-ready{border-radius:12px!important}
+.pos-marking-status{border-radius:9px!important}
+
+/* Scrollbars */
+.pos-products,.pos-categories,.pos-ticket-content,.pos-orders-embedded,.pos-history-embedded{
+  scrollbar-width:thin;
+  scrollbar-color:#cdd5dd transparent;
+}
+.pos-products::-webkit-scrollbar,.pos-categories::-webkit-scrollbar,.pos-ticket-content::-webkit-scrollbar{width:8px}
+.pos-products::-webkit-scrollbar-thumb,.pos-categories::-webkit-scrollbar-thumb,.pos-ticket-content::-webkit-scrollbar-thumb{background:#cdd5dd;border-radius:8px}
+
+@media(max-width:1280px){
+  .pos-layout{grid-template-columns:minmax(0,1fr) 345px!important}
+  .pos-catalog-body{grid-template-columns:138px minmax(0,1fr)!important}
+  .pos-products{grid-template-columns:repeat(auto-fill,minmax(148px,1fr))!important}
+}
+@media(max-width:900px){
+  .pos-layout{grid-template-columns:minmax(0,1fr) 320px!important}
+  .pos-catalog-body{grid-template-columns:126px minmax(0,1fr)!important}
+  .pos-products{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))!important}
+}
