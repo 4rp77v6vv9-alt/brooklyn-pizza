@@ -1,8 +1,8 @@
 {
-  "name": "brooklyn-pizza-pos-desktop",
-  "version": "20.31.51",
+  "name": "rita-pos-desktop",
+  "version": "1.0.0",
   "private": true,
-  "description": "Brooklyn Pizza POS for Windows",
+  "description": "Rita POS — ресторанные информационные технологии и автоматизация",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
@@ -14,21 +14,35 @@
   },
   "build": {
     "appId": "ru.brooklynpizza.pos",
-    "productName": "Brooklyn Pizza POS",
+    "productName": "Rita POS",
     "asar": true,
-    "directories": {"output": "dist"},
-    "files": ["electron/**/*","renderer/**/*","build/icon.ico","package.json"],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "build/icon.ico",
+      "package.json"
+    ],
     "win": {
       "icon": "build/icon.ico",
-      "target": [{"target":"nsis","arch":["x64"]}],
-      "artifactName": "Brooklyn-Pizza-POS-Setup-${version}-${arch}.${ext}"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Rita-POS-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Brooklyn Pizza POS",
+      "shortcutName": "Rita POS",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico"
